@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum Gender {
+  nam
+  nu
+  unisex
+}
+
+enum PaymentMethod {
+  COD
+  BANK
+  CARD
+  WALLET
+}
+
+enum WalletTransactionType {
+  TOPUP
+  ORDER_PAYMENT
+}
+
+enum OrderStatus {
+  PLACED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  fullName     String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(CUSTOMER)
+  walletBalance Int     @default(0)
+  createdAt    DateTime @default(now())
+
+  reviews            Review[]
+  orders             Order[]
+  walletTransactions WalletTransaction[]
+}
+
+model Product {
+  id          String   @id
+  name        String
+  price       Int
+  category    String
+  gender      Gender
+  tone        Int
+  colors      String[]
+  images      String[] @default([])
+  description String
+  createdAt   DateTime @default(now())
+
+  reviews    Review[]
+  orderItems OrderItem[]
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  productId String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+}
+
+model Testimonial {
+  id           String  @id @default(cuid())
+  authorName   String
+  authorRole   String?
+  quote        String
+  rating       Int?
+  avatarTone   Int     @default(0)
+  displayOrder Int     @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  orderNumber   String        @unique
+  userId        String
+  name          String
+  phone         String
+  email         String
+  address       String
+  city          String
+  zip           String?
+  paymentMethod PaymentMethod
+  subtotal      Int
+  shippingFee   Int
+  total         Int
+  status        OrderStatus   @default(PLACED)
+  createdAt     DateTime      @default(now())
+
+  user               User                @relation(fields: [userId], references: [id])
+  items              OrderItem[]
+  walletTransactions WalletTransaction[]
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  name      String
+  price     Int
+  tone      Int
+  color     String
+  quantity  Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model WalletTransaction {
+  id           String                 @id @default(cuid())
+  userId       String
+  type         WalletTransactionType
+  amount       Int
+  balanceAfter Int
+  orderId      String?
+  description  String
+  createdAt    DateTime               @default(now())
+
+  user  User   @relation(fields: [userId], references: [id])
+  order Order? @relation(fields: [orderId], references: [id])
+}
